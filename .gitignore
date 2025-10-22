@@ -3,10 +3,9 @@ __pycache__/
 *.py[codz]
 *$py.class
 *results/*
-# *.pdf
-# *.svg
-# *.png
-
+*.pdf
+*.svg
+*.png
 # C extensions
 *.so
 
