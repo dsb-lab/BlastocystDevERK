@@ -1,6 +1,3 @@
-if pwd() !== "/home/pablo/Desktop/PhD/projects/BlastocystDev/ICMModels/models/saiz_hadjantonakis_2020_FGFko"
-    cd("/home/pablo/Desktop/PhD/projects/BlastocystDev/ICMModels/models/saiz_hadjantonakis_2020_FGFko")
-end
 include("../../types/types.jl")
 include("../../utils/agentsim_utils.jl")
 include("../../utils/general_utils.jl")
@@ -11,12 +8,17 @@ include("constants/constants_biochemical.jl")
 include("utils/model_utils.jl")
 include("utils/ko_utils.jl")
 
-path_figures = "/home/pablo/Desktop/PhD/projects/BlastocystDev/figures/saiz_FGFko/"
+cwd = pwd()
+foldername = basename(cwd)
+basepath = dirname(dirname(cwd))
+save_dir = joinpath(basepath, "results", foldername)
+mkpath(save_dir)
 
 using LaTeXStrings
 using Random
 using PyPlot
 using PyCall
+
 PyPlot.matplotlib[:rc]("mathtext",fontset="dejavusans")        #computer modern font 
 PyPlot.matplotlib[:rc]("font",size=18)
 @pyimport matplotlib.patches as patch
@@ -105,7 +107,5 @@ ax.spines["right"].set_visible(false)
 ax.spines["top"].set_visible(false)
 #ax.legend()
 # PyPlot.tight_layout()
-name=join([path_figures, "fates_vs_FGF", ".svg"])
-savefig(name)
-gcf()
-
+name=join([save_dir, "/fates_vs_FGF", ".pdf"])
+fig,savefig(name)

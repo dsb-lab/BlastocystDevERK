@@ -1,6 +1,9 @@
-if pwd() !== "/home/pablo/Desktop/PhD/projects/BlastocystDev/ICMModels/models/saiz_hadjantonakis_2020_FGFko"
-    cd("/home/pablo/Desktop/PhD/projects/BlastocystDev/ICMModels/models/saiz_hadjantonakis_2020_FGFko")
-end
+using LaTeXStrings
+using Random
+using PyPlot
+using PyCall
+@pyimport matplotlib.patches as patch
+
 include("../../types/types.jl")
 include("../../utils/agentsim_utils.jl")
 include("../../utils/general_utils.jl")
@@ -11,15 +14,21 @@ include("constants/constants_biochemical.jl")
 include("utils/model_utils.jl")
 include("utils/ko_utils.jl")
 
-path_figures = "/home/pablo/Desktop/PhD/projects/BlastocystDev/figures/saiz_FGFko/"
 fgfs = [2.0,4.0,6.0]
-ms = [1.5,4.0]
 
-const coefm=ms[2]
-for FGFmedium in fgfs
+# Save figure
+cwd = pwd()
+foldername = basename(cwd)
+basepath = dirname(dirname(cwd))
+save_dir = joinpath(basepath, "results", foldername)
+mkpath(save_dir)
+
+FGFm = 0.0
+for FGFm in fgfs
     Nanogmax=10.0
 
-    Gata6max = ag*FGFmedium/dg
+    Gata6max = ag*FGFm/dg
+    println(FGFm)
 
     ### SIMULATION ###
     @time _ = agentsimICM( saiz_hadjantonakis_2020, ["NANOG", "GATA6", "FGF"], "FGF"
@@ -28,16 +37,16 @@ for FGFmedium in fgfs
                         , Fth=10000.0
                         , comext=0.0
                         , comKO = false);
-
     @time results = agentsimICM( saiz_hadjantonakis_2020, ["NANOG", "GATA6", "FGF"], "FGF"
                             , h=0.001  #integration time-step
                             , mh=0.5   #data measuring time-step
                             , Fth=Inf
-                            , comext=FGFmedium
+                            , comext=FGFm
                             , comKO=true);
+
     ### END SIMULATION ###
-    @time Nrange, Grange, N_Nnull, G_Gnull = NGF_nullclines(FGFmedium, Nanogmax, Gata6max);
-    @time XX, YY, dx, dy = NGF_vfield(FGFmedium, Nanogmax, Gata6max);
+    @time Nrange, Grange, N_Nnull, G_Gnull = NGF_nullclines(FGFm, Nanogmax, Gata6max);
+    @time XX, YY, dx, dy = NGF_vfield(FGFm, Nanogmax, Gata6max);
     _NANOG = results.vars[1]
     _GATA6 = results.vars[2]
     _FGF = results.vars[3]
@@ -45,16 +54,11 @@ for FGFmedium in fgfs
     @time fBP, fEPI, fPRE, _totals, NANOG, GATA6, FGF, CFATES, X, Y, Z, times, totals = NGF_postprocessing(results.times, results.fDP, results.fEPI, results.fPRE, _NANOG, _GATA6, _FGF, positions.X, positions.Y, positions.Z, results.R, results.CFATES);
 
     if true
-    @time init_pointsEPIN, init_pointsEPIG, init_pointsPrEN, init_pointsPrEG, end_pointsEPIN, end_pointsEPIG, end_pointsPrEN, end_pointsPrEG = fate_phasespace(FGFmedium, Nanogmax, Gata6max, resolution=100);
+    @time init_pointsEPIN, init_pointsEPIG, init_pointsPrEN, init_pointsPrEG, end_pointsEPIN, end_pointsEPIG, end_pointsPrEN, end_pointsPrEG = fate_phasespace(FGFm, Nanogmax, Gata6max, resolution=100);
     end
 
-    using LaTeXStrings
-    using Random
-    using PyPlot
-    using PyCall
     PyPlot.matplotlib[:rc]("mathtext",fontset="dejavusans")        #computer modern font 
     PyPlot.matplotlib[:rc]("font",size=19)
-    @pyimport matplotlib.patches as patch
 
     PyPlot.close("all")
     PyPlot.clf()
@@ -98,11 +102,11 @@ for FGFmedium in fgfs
     ax.spines["right"].set_visible(false)
     ax.spines["top"].set_visible(false)
     # PyPlot.legend(bbox_to_anchor=[1.0,0.75])
-    plt.title(join([L" $F_m$", "=$FGFmedium", L" ; $m=$","$coefm"]))
-    # plt.title(join([L" $F_m$", "=$FGFmedium"]))
+    plt.title(join([L" $F_m$", "=$FGFm", L" ; $m=$","$coefm"]))
+    # plt.title(join([L" $F_m$", "=$FGFm"]))
     PyPlot.tight_layout()
 
-    name=join([path_figures,"initialconditions_FGFext$FGFmedium$coefm", ".svg"])
-    # name=join([path_figures,"finalconditions_FGFext$FGFmedium", ".png"])
-    savefig(name)
+    name=join([save_dir,"/initialconditions_FGFext$FGFm$coefm", ".pdf"])
+    println(name)
+    fig.savefig(name)
 end

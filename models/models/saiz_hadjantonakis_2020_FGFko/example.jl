@@ -1,6 +1,4 @@
-if pwd() !== "/home/pablo/Desktop/PhD/projects/BlastocystDev/ICMModels/models/saiz_hadjantonakis_2020_FGFko"
-    cd("/home/pablo/Desktop/PhD/projects/BlastocystDev/ICMModels/models/saiz_hadjantonakis_2020_FGFko")
-end
+# Set path to the repository folder
 include("../../types/types.jl")
 include("../../utils/agentsim_utils.jl")
 include("../../utils/general_utils.jl")
@@ -9,7 +7,6 @@ include("../../utils/plot_utils.jl")
 include("constants/constants_mechanical.jl")
 include("constants/constants_biochemical.jl")
 include("utils/model_utils.jl")
-include("utils/ko_utils.jl")
 
 ### SIMULATION ###W
 @time _ = agentsimICM( saiz_hadjantonakis_2020, ["NANOG", "GATA6", "FGF"], "FGF"
@@ -27,15 +24,26 @@ include("utils/ko_utils.jl")
                           , comKO=true);
 ### END SIMULATION ###
 
+cwd = pwd()
+foldername = basename(cwd)
+basepath = dirname(dirname(cwd))
+save_dir = joinpath(basepath, "results", foldername)
+mkpath(save_dir)
+
 ### PLOTING ###
 PyPlot.close("all")
 
 # Plot example of time traces on a 3x3 grid
-plot_timeseries(results,all=false)
+fig1, ax1 = plot_timeseries(results,all=false)
+savepath = joinpath(save_dir, "timeseries.pdf")
+fig1.savefig(savepath)
 
 # plot 3d embryo 
-plot_3D_embryo(results)
+fig_3d, ax_3d = plot_3D_embryo(results)
+savepath = joinpath(save_dir, "3drender.pdf")
+fig_3d.savefig(savepath)
 
 # plot cell fates over cell number
-plot_fates_cellN(results)
-
+fig2, ax2 = plot_fates_cellN(results)
+savepath = joinpath(save_dir, "fate_progression_example.pdf")
+fig2.savefig(savepath)

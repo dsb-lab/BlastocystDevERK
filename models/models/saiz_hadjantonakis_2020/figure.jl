@@ -73,8 +73,6 @@ FPREstd = std(FPREmat, dims=1)[:].*100
 
 ### Plotting ###
 
-p3=plot(right_margin=20Plots.mm)
-p31 = twinx()
 l = grid(1, 3)
 p2=plot()
 p3=plot(right_margin=20Plots.mm)
@@ -177,6 +175,7 @@ cwd = pwd()
 foldername = basename(cwd)
 basepath = dirname(dirname(cwd))
 save_dir = joinpath(basepath, "results", foldername)
+mkpath(save_dir)
 
 savepath = joinpath(save_dir, "fate_progression.pdf")
 savefig(p, savepath)

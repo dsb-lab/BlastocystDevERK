@@ -17,7 +17,7 @@ const df = dg
 const af = (df / (K*Kn)) * sqrt((dg*Kg)/ag)
 
 const coefn = 2.0
-const coefm = 2.0
+const coefm = 4.0
 
 const states0   = [5.0, 8.5, 0.01]
 const states0sd = [0.0, 0.0, 0.0]

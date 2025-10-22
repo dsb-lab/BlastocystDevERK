@@ -29,6 +29,7 @@ cwd = pwd()
 foldername = basename(cwd)
 basepath = dirname(dirname(cwd))
 save_dir = joinpath(basepath, "results", foldername)
+mkpath(save_dir)
 
 ### PLOTING ###
 PyPlot.close("all")

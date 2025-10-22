@@ -1,16 +1,21 @@
-if pwd() !== "/home/pablo/Desktop/PhD/projects/BlastocystDev/ICMModels/models_EmbryonicDev/NGF/FGFko"
-    cd("/home/pablo/Desktop/PhD/projects/BlastocystDev/ICMModels/models_EmbryonicDev/NGF/FGFko")
-end
 include("/home/pablo/Desktop/PhD/projects/BlastocystDev/ICMModels/models_EmbryonicDev/NGF/utils/utils.jl")
 include("/home/pablo/Desktop/PhD/projects/BlastocystDev/ICMModels/models_EmbryonicDev/NGF/utils/general_utils.jl")
 
-path_figures = "/home/pablo/Desktop/PhD/projects/BlastocystDev/figures/saiz_FGFko/"
 
 using LaTeXStrings
 using BifurcationKit
 using Revise, ForwardDiff, Parameters, Plots, Setfield, LinearAlgebra
 const BK = BifurcationKit
 using Plots.PlotMeasures
+
+# Save figure
+cwd = pwd()
+foldername = basename(cwd)
+basepath = dirname(dirname(cwd))
+save_dir = joinpath(basepath, "results", foldername)
+mkpath(save_dir)
+
+
 # sup norm
 norminf(x) = norm(x, Inf)
 
@@ -28,7 +33,6 @@ model(z, p) = model!(similar(z), z, p, 0)
 
 # we group the differentials together
 dmodel(z,p) = ForwardDiff.jacobian(x -> model(x,p), z)
-jet = BK.getJet(model, dmodel)
 
 # parameter values
 alpha=10.0
@@ -179,6 +183,6 @@ scatter!([1.5, 1.5, 1.5, 4.0, 4.0, 4.0], [2.0, 4.0, 6.0, 2.0, 4.0, 6.0], markers
 ylabel!(L"$F_m$")
 xlabel!(L"$m$")
 
-# savefig(P, join([path_figures, "codim2.svg"]))
+savefig(P, join([save_dir, "/codim2.svg"]))
 
 #xlims!(0.0, 10)

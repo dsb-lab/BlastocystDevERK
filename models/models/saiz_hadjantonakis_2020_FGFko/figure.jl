@@ -1,9 +1,6 @@
-if pwd() !== "/home/pablo/Desktop/PhD/projects/BlastocystDev/ICMModels/models/test"
-    cd("/home/pablo/Desktop/PhD/projects/BlastocystDev/ICMModels/models/test")
-end
-
 using Plots
-pyplot()
+gr()
+
 using LaTeXStrings
 
 plot_font = "DejaVu Sans"
@@ -19,7 +16,6 @@ include("../../types/types.jl")
 include("../../utils/agentsim_utils.jl")
 include("../../utils/general_utils.jl")
 include("../../utils/analysis_utils.jl")
-# include("../../utils/plot_utils.jl")
 include("constants/constants_mechanical.jl")
 include("constants/constants_biochemical.jl")
 include("utils/model_utils.jl")
@@ -48,7 +44,7 @@ include("utils/model_utils.jl")
 , comKO=false);
 
 rr = findfirst.(isequal.(unique(results.totals)), [results.totals])
-N=10
+N=20
 tots = results.totals[rr]
 FDPmat  = zeros(N,length(tots))
 FEPImat = zeros(N,length(tots))
@@ -60,11 +56,11 @@ for n=1:N
                         , Fth=Inf
                         , comext=0.0
                         , comKO=false);
-    rr = findfirst.(isequal.(unique(_results.totals)), [_results.totals])
-    tots = _results.totals[rr]
-    FDPmat[n,:]  .= _results.fDP[rr]./tots
-    FEPImat[n,:] .= _results.fEPI[rr]./tots
-    FPREmat[n,:] .= _results.fPRE[rr]./tots
+    _rr = findfirst.(isequal.(unique(_results.totals)), [_results.totals])
+    _tots = _results.totals[_rr]
+    FDPmat[n,:]  .= _results.fDP[_rr]./_tots
+    FEPImat[n,:] .= _results.fEPI[_rr]./_tots
+    FPREmat[n,:] .= _results.fPRE[_rr]./_tots
 end
 
 FDP  = mean(FDPmat, dims=1)[:].*100
@@ -98,8 +94,8 @@ clrs = [
 
 comvaridx = findfirst(simresults.comvarname .== simresults.varsnames)
 comvarname = simresults.comvarname
-max_val = 0.0
-min_val = Inf
+global max_val = 0.0
+global min_val = Inf
 
 cells = [1,2,3]
 all=false
@@ -120,8 +116,8 @@ elseif simresults.CFATES[jj1,end] == 2
     tit="time series PrE"
 end
 for vid in eachindex(simresults.vars)
-    max_val = max(max_val, maximum(simresults.vars[vid][jj1,start:end]))
-    min_val = min(min_val, minimum(simresults.vars[vid][jj1,start:end]))
+    global max_val = max(max_val, maximum(simresults.vars[vid][jj1,start:end]))
+    global min_val = min(min_val, minimum(simresults.vars[vid][jj1,start:end]))
     plot!(ax[2], simresults.times[start:end], simresults.vars[vid][jj1,start:end], label=simresults.varsnames[vid], color=clrs[vid], background_color_inside=FC, background_color_outside="white", legend=false)
 end
 
@@ -143,8 +139,8 @@ elseif simresults.CFATES[jj2,end] == 2
     tit="time series PrE"
 end
 for vid in eachindex(simresults.vars)
-    max_val = max(max_val, maximum(simresults.vars[vid][jj2,start:end]))
-    min_val = min(min_val, minimum(simresults.vars[vid][jj2,start:end]))
+    global max_val = max(max_val, maximum(simresults.vars[vid][jj2,start:end]))
+    global min_val = min(min_val, minimum(simresults.vars[vid][jj2,start:end]))
     plot!(ax[3], simresults.times[start:end], simresults.vars[vid][jj2,start:end], label=simresults.varsnames[vid], color=clrs[vid], background_color_inside=FC, background_color_outside="white", legend=false)
 end
 plot(ax[3], simresults.times[start:end], simresults.comvar[jj2,start:end], label="$comvarname received", color=clrs[comvaridx],linestyle=:dash)
@@ -174,24 +170,13 @@ p = plot(p2,p3,p4,
 #  right_margin=5Plots.mm,
  left_margin=5Plots.mm
  )
-savefig(p, "test.svg")
 
-# if simresults.CFATES[jj,end] == 1
-#     ax[i].set_facecolor((1.0, 0.8, 0.8))
-# elseif simresults.CFATES[jj,end] == 2
-#     ax[i].set_facecolor((0.8, 1.0, 1.0))
-# end
-# if i==3
-#     handls = []
-#     for vid in eachindex(simresults.vars)
-#         push!(handls, patch.Patch(color=clrs[vid], label=simresults.varsnames[vid]))
-#     end
-#     ax[i].legend(handles=handls, bbox_to_anchor=[1.15,1],loc=2,borderaxespad=0)
-# end
-# if i==3
-#     p_patch = patch.Patch(color=(1.0, 1.0, 1.0), label="DP")
-#     r_patch = patch.Patch(color=(1.0, 0.8, 0.8), label="EPI")
-#     b_patch = patch.Patch(color=(0.8, 1.0, 1.0), label="PrE")
-#     ax[i].legend(handles=[p_patch, r_patch, b_patch], bbox_to_anchor=[1.15,1],loc=2,borderaxespad=0)
-# end
+ # Save figure
+cwd = pwd()
+foldername = basename(cwd)
+basepath = dirname(dirname(cwd))
+save_dir = joinpath(basepath, "results", foldername)
+mkpath(save_dir)
 
+savepath = joinpath(save_dir, "fate_progression.pdf")
+savefig(p, savepath)
