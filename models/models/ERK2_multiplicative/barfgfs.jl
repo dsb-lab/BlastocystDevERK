@@ -25,28 +25,38 @@ PyPlot.matplotlib[:rc]("font",size=18)
 
 nsimulations = 20
 
-labels = collect(range(2.0,step=0.2,stop=6))
-
+labs_step=0.025
+labs_end = 1.3
+labs_start = 1.0
+labels = collect(range(labs_start, step=labs_step, stop=labs_end))
+labels = [labels; 0; 0]
 fatesDPs  = zeros(length(labels), nsimulations)
 fatesEPIs = zeros(length(labels), nsimulations)
 fatesPrEs = zeros(length(labels), nsimulations)
 
-@time results = agentsimICM( saiz_hadjantonakis_2020, ["NANOG", "GATA6", "FGF"], "FGF"
-                          , h=0.1  #integration time-step
-                          , mh=0.5   #data measuring time-step
+### SIMULATION ###
+@time simresults = agentsimICM(ERK_model_3, ["NANOG", "GATA6", "FGF", "ERK", "FGFR2"], "FGF"
+                          , h=0.0005  #integration time-step
+                          , mh=0.001   #data measuring time-step
                           , Fth=Inf
+                        #   , comext=1.15
                           , comext=0.0
-                          , comKO=true);
+                          , comKO=false);
+
 
 for (i,FGFmedium) in enumerate(labels)
+    if i==length(labels)-1
+        continue
+    end
     println("\n######\n $FGFmedium \n######\n")
     Threads.@threads for n=1:nsimulations
-        @time results = agentsimICM( saiz_hadjantonakis_2020, ["NANOG", "GATA6", "FGF"], "FGF"
-        , h=0.001  #integration time-step
-        , mh=0.01   #data measuring time-step
-        , Fth=Inf
-        , comext=FGFmedium
-        , comKO=true);
+        @time results = agentsimICM(ERK_model_3, ["NANOG", "GATA6", "FGF", "ERK", "FGFR2"], "FGF"
+                          , h=0.0005  #integration time-step
+                          , mh=0.001   #data measuring time-step
+                          , Fth=Inf
+                        #   , comext=1.15
+                          , comext=FGFmedium
+                          , comKO=true);
         println(n)
 
         _NANOG = results.vars[1]
@@ -93,19 +103,24 @@ fatesDPstds  = reshape(std(fatesDPs, dims=2), length(labels))
 fatesEPIstds = reshape(std(fatesEPIs, dims=2), length(labels))
 fatesPrEstds = reshape(std(fatesPrEs, dims=2), length(labels))
 
-
-width = 0.15 # the width of the bars: can also be len(x) sequence
+width = 0.02 # the width of the bars: can also be len(x) sequence
 PyPlot.close("all")
 fig, ax = plt.subplots(figsize=(7,6)) 
+labels[end] = labs_end + 2* labs_step
 ax.bar(labels, fatesEPIms.+fatesPrEms.+fatesDPms, width, label="EPI", color=[0.0, 0.8, 0.0], edgecolor="black")
 ax.bar(labels, fatesPrEms.+fatesDPms, width, label="PrE", color=[0.8, 0.0, 0.8], edgecolor="black")
 ax.bar(labels, fatesDPms, width, label="DP", color=[0.5, 0.5, 0.5], edgecolor="black")
-
+ax.set_xlim(labels[1]-labs_step, labels[end]+labs_step)
 ax.set_ylabel("Fraction of ICM")
 ax.set_xlabel(L" $F_m$")
 ax.spines["right"].set_visible(false)
 ax.spines["top"].set_visible(false)
 #ax.legend()
 # PyPlot.tight_layout()
+ax.set_xticks([1.0, 1.2, 1.4])
+ax.set_xticklabels([1.0, 1.2, "MEKi"])
+PyPlot.tight_layout()
 name=join([save_dir, "/fates_vs_FGF", ".pdf"])
 fig.savefig(name)
+
+

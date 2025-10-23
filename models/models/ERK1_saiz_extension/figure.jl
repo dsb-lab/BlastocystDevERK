@@ -1,7 +1,16 @@
 using Plots
 gr()
-
+using KernelDensity
 using LaTeXStrings
+using Random
+import PyPlot
+using PyCall
+
+cwd = pwd()
+foldername = basename(cwd)
+basepath = dirname(dirname(cwd))
+save_dir = joinpath(basepath, "results", foldername)
+mkpath(save_dir)
 
 plot_font = "DejaVu Sans"
 default(fontfamily=plot_font,
@@ -21,26 +30,20 @@ include("constants/constants_biochemical.jl")
 include("utils/model_utils.jl")
 
 ### SIMULATION ###
-@time _ = agentsimICM( saiz_hadjantonakis_2020, ["NANOG", "GATA6", "FGF"], "FGF"
-                    , h=0.1    #integration time-step
-                    , mh=1000000000.0   #data measuring time-step
-                    , Fth=10000.0
+@time simresults = agentsimICM( ERK_model_1, ["NANOG", "GATA6", "FGF", "ERK"], "FGF"
+                    , h=0.001  #integration time-step
+                    , mh=0.5   #data measuring time-step
+                    , Fth=Inf
                     , comext=0.0
-                    , comKO = false);
+                    , comKO=false);
 
-@time simresults = agentsimICM( saiz_hadjantonakis_2020, ["NANOG", "GATA6", "FGF"], "FGF"
-                          , h=0.001  #integration time-step
-                          , mh=0.5   #data measuring time-step
-                          , Fth=Inf
-                          , comext=0.0
-                          , comKO=false);
 
-@time results = agentsimICM( saiz_hadjantonakis_2020, ["NANOG", "GATA6", "FGF"], "FGF"
-                        , h=0.0005  #integration time-step
-                        , mh=0.001   #data measuring time-step
-                        , Fth=Inf
-                        , comext=0.0
-                        , comKO=false);
+@time results = agentsimICM( ERK_model_1, ["NANOG", "GATA6", "FGF", "ERK"], "FGF"
+                    , h=0.001  #integration time-step
+                    , mh=0.001   #data measuring time-step
+                    , Fth=Inf
+                    , comext=0.0
+                    , comKO=false);
 
 rr = findfirst.(isequal.(unique(results.totals)), [results.totals])
 N=20
@@ -48,8 +51,12 @@ tots = results.totals[rr]
 FDPmat  = zeros(N,length(tots))
 FEPImat = zeros(N,length(tots))
 FPREmat = zeros(N,length(tots))
+
+global ERK_EPI = Vector{Float64}()
+global ERK_PrE = Vector{Float64}()
+
 for n=1:N
-@time _results = agentsimICM( saiz_hadjantonakis_2020, ["NANOG", "GATA6", "FGF"], "FGF"
+    @time _results = agentsimICM( ERK_model_1, ["NANOG", "GATA6", "FGF", "ERK"], "FGF"
                         , h=0.001  #integration time-step
                         , mh=0.001   #data measuring time-step
                         , Fth=Inf
@@ -60,7 +67,29 @@ for n=1:N
     FDPmat[n,:]  .= _results.fDP[_rr]./_tots
     FEPImat[n,:] .= _results.fEPI[_rr]./_tots
     FPREmat[n,:] .= _results.fPRE[_rr]./_tots
+
+    _ERK_EPI = var_distribution(_results, "ERK", 1, N_start+5)
+    _ERK_PrE = var_distribution(_results, "ERK", 2, N_start+5)
+    global ERK_EPI = [ERK_EPI; _ERK_EPI]
+    global ERK_PrE = [ERK_PrE; _ERK_PrE]
 end
+
+# Calculate the point density
+PyPlot.matplotlib[:rc]("mathtext",fontset="dejavusans")        #computer modern font 
+PyPlot.matplotlib[:rc]("font",size=18)
+
+fig,ax = PyPlot.subplots(figsize=(5,4))
+
+kde_pre = kde(ERK_PrE)
+PyPlot.plot(kde_pre.x, kde_pre.density, color=[0.8,0,0.8,1.0],lw=5)
+PyPlot.hist(ERK_PrE, color=[0.9,0,0.9,0.3], bins=30, density=true)
+PyPlot.yticks([])
+PyPlot.xlabel("ERK")
+kde_epi = kde(ERK_EPI)
+ax2 = PyPlot.twinx()
+ax2.plot(kde_epi.x, kde_epi.density, color=[0,0.7,0,1.0],lw=5)
+ax2.hist(ERK_EPI, color=[0,0.8,0,0.3], bins=30, density=true)
+PyPlot.savefig(join([save_dir, "/erkdists.pdf"]))
 
 FDP  = mean(FDPmat, dims=1)[:].*100
 FEPI = mean(FEPImat, dims=1)[:].*100
@@ -72,7 +101,6 @@ FPREstd = std(FPREmat, dims=1)[:].*100
 # ### END SIMULATION ###
 
 ### Plotting ###
-
 l = grid(1, 3)
 p2=plot()
 p3=plot(right_margin=20Plots.mm)
@@ -169,13 +197,6 @@ p = plot(p2,p3,p4,
 #  right_margin=5Plots.mm,
  left_margin=5Plots.mm
  )
-
-# Save figure
-cwd = pwd()
-foldername = basename(cwd)
-basepath = dirname(dirname(cwd))
-save_dir = joinpath(basepath, "results", foldername)
-mkpath(save_dir)
 
 savepath = joinpath(save_dir, "fate_progression.pdf")
 savefig(p, savepath)

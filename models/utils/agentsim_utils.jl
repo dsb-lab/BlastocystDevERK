@@ -37,7 +37,7 @@ function agentsimICM(model, varsnames, comvarname; h=0.001  #integration time-st
     else
         used_cfr=test_cfr
     end
-    print(used_cfr)
+
     for var=1:nvars
         push!(states, zeros(Nmax))
         push!(dstates, zeros(Nmax))
@@ -350,14 +350,11 @@ function agentsimICM(model, varsnames, comvarname; h=0.001  #integration time-st
                     var1 = states[var][i] + noise
                     var2 = states[var][i] - noise     
                     while var1<0.0 || var2<0.0
-                        println()
-                        println(var1)
-                        println(var2)
+
                         noise = states[var][i]*sigma_var[var]*(rand()-0.5)
                         var1 = states[var][i] + noise
                         var2 = states[var][i] - noise
-                        println(var1)
-                        println(var2)
+
                     end
                     states[var][Ncells] = var1
                     states[var][i] = var2
@@ -774,7 +771,6 @@ function agentsimICM_ESCs(model, varsnames, comvarname; h=0.001  #integration ti
     else
     used_cfr=test_cfr
     end
-    print(used_cfr)
     for var=1:nvars
     push!(states, zeros(NmaxESC))
     push!(dstates, zeros(NmaxESC))
@@ -865,10 +861,6 @@ function agentsimICM_ESCs(model, varsnames, comvarname; h=0.001  #integration ti
     Nstart   = round(Int, (N_start+NESCs) + Nstartsd*rand(nor))
     ESC_cell_ids = Vector{Int64}(range(Nstart-NESCs-1, Nstart))
     
-    println()
-    println("NMAX is $NmaxESC")
-    println("Nstart is $Nstart")
-
     ct   = h
     nextdiv[1] = (ndiv[1] - sdiv + rnu1*2.0*sdiv)*tdiv
     d    = 0.0
@@ -1092,14 +1084,11 @@ function agentsimICM_ESCs(model, varsnames, comvarname; h=0.001  #integration ti
                 var1 = states[var][i] + noise
                 var2 = states[var][i] - noise     
                 while var1<0.0 || var2<0.0
-                    println()
-                    println(var1)
-                    println(var2)
+
                     noise = states[var][i]*sigma_var[var]*(rand()-0.5)
                     var1 = states[var][i] + noise
                     var2 = states[var][i] - noise
-                    println(var1)
-                    println(var2)
+
                 end
                 states[var][Ncells] = var1
                 states[var][i] = var2
