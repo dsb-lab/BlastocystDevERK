@@ -1,19 +1,20 @@
- 
- if pwd() !== "/home/pablo/Desktop/PhD/projects/BlastocystDev/ICMModels/models/ERK3"
-    cd("/home/pablo/Desktop/PhD/projects/BlastocystDev/ICMModels/models/ERK3")
-end
 
-using PyCall
-using PyPlot
+cwd = pwd()
+foldername = basename(cwd)
+basepath = dirname(dirname(cwd))
+save_dir = joinpath(basepath, "results", foldername)
+mkpath(save_dir)
+
 include("../../types/types.jl")
 include("../../utils/agentsim_utils.jl")
 include("../../utils/general_utils.jl")
 include("../../utils/analysis_utils.jl")
-include("../../utils/plot_utils.jl")
 include("constants/constants_mechanical.jl")
 include("constants/constants_biochemical.jl")
 include("utils/model_utils.jl")
-path_figures="/home/pablo/Desktop/PhD/projects/BlastocystDev/figures/ERK_model_4/"
+
+import PyPlot
+using PyCall
 
 PyPlot.matplotlib[:rc]("mathtext",fontset="cm")        #computer modern font 
 PyPlot.matplotlib[:rc]("font",size=40)
@@ -34,19 +35,13 @@ results.totals
 ### PLOTING ###
 PyPlot.close("all")
 
-plot_fates_cellN(results)
-
-# Plot example of time traces on a 3x3 grid
-plot_timeseries(results, all=false)
-# path_figures*"$cfr.svg"
-# plot 3d embryo 
 for ESC_Number in [0, 2, 5, 7, 10]
     nanogs_init = Vector{Float64}()
     gata6s_init = Vector{Float64}()
     colors = []
-    N=3
+    N=100
     for n in range(1, N)
-    @time results, ESC_cell_ids = agentsimICM_ESCs( ERK_model_3, ["NANOG", "GATA6", "FGF", "ERK", "FGFR2"], "FGF"
+    @time _results, _ESC_cell_ids = agentsimICM_ESCs( ERK_model_3, ["NANOG", "GATA6", "FGF", "ERK", "FGFR2"], "FGF"
                             , h=0.001  #integration time-step
                             , mh=0.01   #data measuring time-step
                             , Fth=Inf
@@ -57,14 +52,14 @@ for ESC_Number in [0, 2, 5, 7, 10]
                             , fixedFGF=2.0);
 
     for c in range(2,N_start)
-        if c in ESC_cell_ids
+        if c in _ESC_cell_ids
         continue
         end
-        push!(nanogs_init, results.vars[1][c, :][findfirst(results.vars[1][c, :].>0)])
-        push!(gata6s_init, results.vars[2][c, :][findfirst(results.vars[2][c, :].>0)])
-        if results.CFATES[c,end] == 1
+        push!(nanogs_init, _results.vars[1][c, :][findfirst(_results.vars[1][c, :].>0)])
+        push!(gata6s_init, _results.vars[2][c, :][findfirst(_results.vars[2][c, :].>0)])
+        if _results.CFATES[c,end] == 1
         push!(colors, "red")
-        elseif results.CFATES[c,end] == 2
+        elseif _results.CFATES[c,end] == 2
         push!(colors, "blue")
         else
         push!(colors, "purple")
@@ -73,7 +68,7 @@ for ESC_Number in [0, 2, 5, 7, 10]
     end
 
     # Start with a square Figure.
-    fig = plt.figure(figsize=(10, 10))
+    fig = PyPlot.figure(figsize=(10, 10))
     # fig.suptitle("% ESCs = 25", fontsize=35)
 
     # Add a gridspec with two rows and two columns and a ratio of 1 to 4 between
@@ -95,7 +90,7 @@ for ESC_Number in [0, 2, 5, 7, 10]
 
     sc = ax.scatter(gata6s_init, nanogs_init, c=colors, s=50, alpha=0.3)
 
-    # plt.colorbar(sc, ax=ax, label="Number of points per pixel")
+    # PyPlot.colorbar(sc, ax=ax, label="Number of points per pixel")
     ax.set_xlabel("Gata6")
     ax.set_ylabel("Nanog")
 
@@ -103,7 +98,7 @@ for ESC_Number in [0, 2, 5, 7, 10]
     ax.set_ylim(0.6, 2.0)
     ax.set_xticks(range(0.8, 1.9, step=0.5))
     ax.set_yticks(range(0.8, 1.9, step=0.5))
-    plt.tight_layout()
+    PyPlot.tight_layout()
     # now determine nice limits by hand:
 
     gata6_pre = [gata6s_init[i] for i in eachindex(gata6s_init) if colors[i]=="blue"]
@@ -117,5 +112,6 @@ for ESC_Number in [0, 2, 5, 7, 10]
     _n, _bins, _ = ax_histy.hist(nanog_epi, bins=30, orientation="horizontal", color="red", alpha=0.3, density=true)
     ax_histy.set_xticks([])
     ax_histx.set_yticks([])
-    savefig(path_figures*"$ESC_Number.svg")
+    name=join([save_dir, "/$ESC_Number", ".pdf"])
+    fig.savefig(name)
 end

@@ -1,28 +1,30 @@
-if pwd() !== "/home/pablo/Desktop/PhD/projects/BlastocystDev/ICMModels/models/ERK3"
-    cd("/home/pablo/Desktop/PhD/projects/BlastocystDev/ICMModels/models/ERK3")
-end
-
 using Plots
-pyplot()
+gr()
 using LaTeXStrings
+
+cwd = pwd()
+foldername = basename(cwd)
+basepath = dirname(dirname(cwd))
+save_dir = joinpath(basepath, "results", foldername)
+mkpath(save_dir)
 
 plot_font = "DejaVu Sans"
 default(fontfamily=plot_font,
         linewidth=3, label=nothing, grid=false,
-        xtickfont=font(20), 
-        ytickfont=font(20), 
-        guidefont=font(20),
-        titlefont=font(20),
-        legendfontsize=18)
+        xtickfont=font(18), 
+        ytickfont=font(18), 
+        guidefont=font(18),
+        titlefont=font(18),
+        legendfontsize=16)
 
 include("../../types/types.jl")
 include("../../utils/agentsim_utils.jl")
 include("../../utils/general_utils.jl")
 include("../../utils/analysis_utils.jl")
-# include("../../utils/plot_utils.jl")
 include("constants/constants_mechanical.jl")
 include("constants/constants_biochemical.jl")
 include("utils/model_utils.jl")
+
 
 ### SIMULATION ###
 
@@ -39,7 +41,7 @@ include("utils/model_utils.jl")
 NN = 10
 mean_fgfs_epis = []
 for nn=1:NN
-    @time results, ESC_cell_ids = agentsimICM_ESCs( ERK_model_3, ["NANOG", "GATA6", "FGF", "ERK", "FGFR2"], "FGF"
+    @time _results, _ESC_cell_ids = agentsimICM_ESCs( ERK_model_3, ["NANOG", "GATA6", "FGF", "ERK", "FGFR2"], "FGF"
                           , h=0.001  #integration time-step
                           , mh=0.01   #data measuring time-step
                           , Fth=Inf
@@ -49,15 +51,15 @@ for nn=1:NN
                           , NESCs=0
                           , fixedFGF=0.0);
     
-    fgfs = results.vars[2][:, end]
-    results.CFATES[:, end]
-    push!(mean_fgfs_epis, mean(fgfs[findall(results.CFATES[:, end].==2)]))
+    fgfs = _results.vars[2][:, end]
+    _results.CFATES[:, end]
+    push!(mean_fgfs_epis, mean(fgfs[findall(_results.CFATES[:, end].==2)]))
 end
 
 N=20
 FGFESCs = mean(mean_fgfs_epis)
 for ESC_Number in [0, 5, 7, 10]
-    @time simresults, ESC_cell_ids = agentsimICM_ESCs( ERK_model_3, ["NANOG", "GATA6", "FGF", "ERK", "FGFR2"], "FGF"
+    @time simresults, _ESC_cell_ids = agentsimICM_ESCs( ERK_model_3, ["NANOG", "GATA6", "FGF", "ERK", "FGFR2"], "FGF"
                           , h=0.001  #integration time-step
                           , mh=0.01   #data measuring time-step
                           , Fth=Inf
@@ -67,7 +69,7 @@ for ESC_Number in [0, 5, 7, 10]
                           , NESCs=ESC_Number
                           , fixedFGF=FGFESCs);
 
-    @time results, ESC_cell_ids = agentsimICM_ESCs( ERK_model_3, ["NANOG", "GATA6", "FGF", "ERK", "FGFR2"], "FGF"
+    @time _results, _ESC_cell_ids = agentsimICM_ESCs( ERK_model_3, ["NANOG", "GATA6", "FGF", "ERK", "FGFR2"], "FGF"
                             , h=0.001  #integration time-step
                             , mh=0.001   #data measuring time-step
                             , Fth=Inf
@@ -77,8 +79,8 @@ for ESC_Number in [0, 5, 7, 10]
                             , NESCs=ESC_Number
                             , fixedFGF=FGFESCs);
 
-    rr = findfirst.(isequal.(unique(results.totals)), [results.totals])
-    tots = results.totals[rr]
+    rr = findfirst.(isequal.(unique(_results.totals)), [_results.totals])
+    tots = _results.totals[rr]
     FDPmat  = zeros(N,length(tots))
     FEPImat = zeros(N,length(tots))
     FPREmat = zeros(N,length(tots))
@@ -86,7 +88,7 @@ for ESC_Number in [0, 5, 7, 10]
     totals = []
     n=1
     while n < N
-        @time _results, ESC_cell_ids = agentsimICM_ESCs( ERK_model_3, ["NANOG", "GATA6", "FGF", "ERK", "FGFR2"], "FGF"
+        @time _results, _ESC_cell_ids = agentsimICM_ESCs( ERK_model_3, ["NANOG", "GATA6", "FGF", "ERK", "FGFR2"], "FGF"
                             , h=0.001  #integration time-step
                             , mh=0.001   #data measuring time-step
                             , Fth=Inf
@@ -96,15 +98,15 @@ for ESC_Number in [0, 5, 7, 10]
                             , NESCs=ESC_Number
                             , fixedFGF=FGFESCs);
         try
-            rr = findfirst.(isequal.(unique(_results.totals)), [_results.totals])
-            _tots = _results.totals[rr]
-            FDPmat[n,:]  .= _results.fDP[rr]./_tots
-            FEPImat[n,:] .= _results.fEPI[rr]./_tots
-            FPREmat[n,:] .= _results.fPRE[rr]./_tots
+            _rr = findfirst.(isequal.(unique(_results.totals)), [_results.totals])
+            _tots = _results.totals[_rr]
+            FDPmat[n,:]  .= _results.fDP[_rr]./_tots
+            FEPImat[n,:] .= _results.fEPI[_rr]./_tots
+            FPREmat[n,:] .= _results.fPRE[_rr]./_tots
             fate_change = zeros(size(_results.CFATES)[2]-1)
 
             for c in eachindex(_results.CFATES[:,1])
-                if c in ESC_cell_ids
+                if c in _ESC_cell_ids
                     continue
                 end
                 f_change = abs.(diff(_results.CFATES[c,:]))
@@ -150,8 +152,8 @@ for ESC_Number in [0, 5, 7, 10]
 
     comvaridx = findfirst(simresults.comvarname .== simresults.varsnames)
     comvarname = simresults.comvarname
-    max_val = 0.0
-    min_val = Inf
+    global max_val = 0.0
+    global min_val = Inf
 
     cells = [1,2,3]
     all=false
@@ -173,8 +175,8 @@ for ESC_Number in [0, 5, 7, 10]
         tit="time series PrE"
     end
     for vid in eachindex(simresults.vars)
-        max_val = max(max_val, maximum(simresults.vars[vid][jj1,start:end]))
-        min_val = min(min_val, minimum(simresults.vars[vid][jj1,start:end]))
+        global max_val = max(max_val, maximum(simresults.vars[vid][jj1,start:end]))
+        global min_val = min(min_val, minimum(simresults.vars[vid][jj1,start:end]))
         plot!(ax[2], simresults.times[start:end], simresults.vars[vid][jj1,start:end], label=simresults.varsnames[vid], color=clrs[vid], background_color_inside=FC, background_color_outside="white", legend=false)
     end
 
@@ -197,8 +199,8 @@ for ESC_Number in [0, 5, 7, 10]
         tit="time series PrE"
     end
     for vid in eachindex(simresults.vars)
-        max_val = max(max_val, maximum(simresults.vars[vid][jj2,start:end]))
-        min_val = min(min_val, minimum(simresults.vars[vid][jj2,start:end]))
+        global max_val = max(max_val, maximum(simresults.vars[vid][jj2,start:end]))
+        global min_val = min(min_val, minimum(simresults.vars[vid][jj2,start:end]))
         plot!(ax[3], simresults.times[start:end], simresults.vars[vid][jj2,start:end], label=simresults.varsnames[vid], color=clrs[vid], background_color_inside=FC, background_color_outside="white", legend=false)
     end
 
@@ -231,6 +233,6 @@ for ESC_Number in [0, 5, 7, 10]
     left_margin=5Plots.mm
     )
 
-    path_figures="/home/pablo/Desktop/PhD/projects/BlastocystDev/figures/ERK_model_4/"
-    savefig(p, path_figures*"fates$ESC_Number.svg")
+    savepath = joinpath(save_dir, "fates$ESC_Number.pdf")
+    savefig(p, savepath)
 end

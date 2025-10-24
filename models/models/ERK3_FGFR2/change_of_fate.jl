@@ -1,19 +1,21 @@
-if pwd() !== "/home/pablo/Desktop/PhD/projects/BlastocystDev/ICMModels/models/ERK3"
-    cd("/home/pablo/Desktop/PhD/projects/BlastocystDev/ICMModels/models/ERK3")
-end
-
 include("../../types/types.jl")
 include("../../utils/agentsim_utils.jl")
 include("../../utils/general_utils.jl")
 include("../../utils/analysis_utils.jl")
-# include("../../utils/plot_utils.jl")
+include("../../utils/plot_utils.jl")
 include("constants/constants_mechanical.jl")
 include("constants/constants_biochemical.jl")
 include("utils/model_utils.jl")
+include("utils/ko_utils.jl")
 
-N = 20
+using DelimitedFiles
 
-FATE_CHANGE_PER_CELL = zeros(N, 3)
+cwd = pwd()
+foldername = basename(cwd)
+basepath = dirname(dirname(cwd))
+save_dir = joinpath(basepath, "results", foldername)
+mkpath(save_dir)
+
 ### SIMULATION ###
 @time results = agentsimICM( ERK_model_3, ["NANOG", "GATA6", "FGF", "ERK", "FGFR2"], "FGF"
                           , h=0.001  #integration time-step
@@ -23,8 +25,10 @@ FATE_CHANGE_PER_CELL = zeros(N, 3)
                           , comext=0.0
                           , comKO=false);
 
-
+N = 20
 cfrs = [1.2, 2.2, 3.2]
+
+FATE_CHANGE_PER_CELL = zeros(N, 3)
 for ii in eachindex(cfrs)
     test_cfr =  cfrs[ii]
     for n=1:N
@@ -43,10 +47,30 @@ for ii in eachindex(cfrs)
         FATE_CHANGE_PER_CELL[n, ii] = mean(fc_per_cell)
     end
 end
+writedlm(save_dir*"/fgfr2_all.csv", FATE_CHANGE_PER_CELL)
 
-path_figures="/home/pablo/Desktop/PhD/projects/BlastocystDev/figures/ERK_model_4/"
-using DelimitedFiles
-writedlm(path_figures*"fgfr2_KO_all", FATE_CHANGE_PER_CELL)
+const afr = 0.0
+FATE_CHANGE_PER_CELL = zeros(N, 3)
+for ii in eachindex(cfrs)
+    test_cfr =  cfrs[ii]
+    for n=1:N
+        @time _results = agentsimICM(ERK_model_3, ["NANOG", "GATA6", "FGF", "ERK", "FGFR2"], "FGF"
+                            , h=0.001  #integration time-step
+                            , mh=0.1   #data measuring time-step
+                            , Fth=Inf
+                            #   , comext=1.15
+                            , comext=0.0
+                            , comKO=false
+                            , test_cfr=test_cfr);
+        fc_per_cell = zeros(N_start)
+        for c=1:N_start
+            fc_per_cell[c]+=sum(diff(_results.CFATES[c,:]).>0)
+        end
+        FATE_CHANGE_PER_CELL[n, ii] = mean(fc_per_cell)
+    end
+end
+writedlm(save_dir*"/fgfr2_KO_all.csv", FATE_CHANGE_PER_CELL)
+
 
 using LaTeXStrings
 using Random
@@ -56,8 +80,8 @@ PyPlot.matplotlib[:rc]("mathtext",fontset="dejavusans")
 PyPlot.matplotlib[:rc]("font",size=20)
 
 
-f_change = readdlm(path_figures*"fgfr2_all")
-f_change_KO = readdlm(path_figures*"fgfr2_KO_all")
+f_change = readdlm(save_dir*"/fgfr2_all.csv")
+f_change_KO = readdlm(save_dir*"/fgfr2_KO_all.csv")
 
 f_change_mean = mean(f_change, dims=1)
 f_change_mean_KO = mean(f_change_KO, dims=1)
@@ -99,10 +123,4 @@ ax.set_xticks(x)
 ax.set_xticklabels(cfrs)
 ax.set_ylabel(L"$F_{\mathrm{change}}$ / cell")
 ax.set_xlabel(L"$f_{range}$")
-savefig("$path_figures coupling_range.svg")
-
-using HypothesisTests
-f_change = readdlm(path_figures*"fgfr2_all")[:, 1]
-f_change_KO = readdlm(path_figures*"fgfr2_KO_all")[:, 1]
-res = EqualVarianceTTest(f_change, f_change_KO)
-pvalue(res)
+savefig("$save_dir/coupling_range.svg")
